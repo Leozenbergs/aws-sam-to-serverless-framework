@@ -41,6 +41,7 @@
 #     Description: "Implicit IAM Role created for Hello World function"
 #     Value: !GetAtt HelloWorldFunctionRole.Arn
 
+
 org: leozenberg
 app: sam-app
 service: sam-app
@@ -48,14 +49,28 @@ frameworkVersion: "3"
 
 provider:
   name: aws
-  runtime: python3.9
+  runtime: nodejs18.x
   memorySize: 512
   timeout: 10
 
 functions:
   HelloWorldFunction:
-    handler: hello_world/app.lambda_handler
+    handler: handler.main
     events:
-      - http:
+      - httpApi:
           path: /hello
           method: GET
+
+outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HelloWorldApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn

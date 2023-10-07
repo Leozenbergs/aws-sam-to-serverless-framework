@@ -6,7 +6,7 @@
     },
     "provider": {
       "name": "aws",
-      "runtime": "python3.9",
+      "runtime": "nodejs18.x",
       "memorySize": 512,
       "timeout": 10,
       "stage": "dev",
@@ -222,10 +222,10 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/sam-app/dev/1696102278306-2023-09-30T19:31:18.306Z/sam-app.zip"
+                "S3Key": "serverless/sam-app/dev/1696656536051-2023-10-07T05:28:56.051Z/sam-app.zip"
               },
               "Handler": "s_HelloWorldFunction.handler",
-              "Runtime": "python3.9",
+              "Runtime": "nodejs18.x",
               "FunctionName": "sam-app-dev-HelloWorldFunction",
               "MemorySize": 512,
               "Timeout": 10,
@@ -240,102 +240,53 @@
               "HelloWorldFunctionLogGroup"
             ]
           },
-          "HelloWorldFunctionLambdaVersionuscLZGO7Z6N0UuFAk7QS3QdaQwbAE9tl3vK8W6pA0": {
+          "HelloWorldFunctionLambdaVersionAsImhzukHZNz4W1p9yvDhZknnTPOyW9MnQdBqS4w": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "HelloWorldFunctionLambdaFunction"
               },
-              "CodeSha256": "M2F+7U4aPAGiy2wF1kjXzS4+ICrC+t4TVUYygVpr/ZU="
+              "CodeSha256": "EmaI7Jw8S7i2Wci7T5aIOVT7wEKOoKmH49hJXaE5LVw="
             }
           },
-          "ApiGatewayRestApi": {
-            "Type": "AWS::ApiGateway::RestApi",
+          "HttpApi": {
+            "Type": "AWS::ApiGatewayV2::Api",
             "Properties": {
               "Name": "dev-sam-app",
-              "EndpointConfiguration": {
-                "Types": [
-                  "EDGE"
-                ]
-              },
-              "Policy": ""
+              "ProtocolType": "HTTP"
             }
           },
-          "ApiGatewayResourceHello": {
-            "Type": "AWS::ApiGateway::Resource",
+          "HttpApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "ParentId": {
-                "Fn::GetAtt": [
-                  "ApiGatewayRestApi",
-                  "RootResourceId"
-                ]
-              },
-              "PathPart": "hello",
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
+              "LogGroupName": "/aws/http-api/sam-app-dev"
             }
           },
-          "ApiGatewayMethodHelloGet": {
-            "Type": "AWS::ApiGateway::Method",
+          "HttpApiStage": {
+            "Type": "AWS::ApiGatewayV2::Stage",
             "Properties": {
-              "HttpMethod": "GET",
-              "RequestParameters": {},
-              "ResourceId": {
-                "Ref": "ApiGatewayResourceHello"
+              "ApiId": {
+                "Ref": "HttpApi"
               },
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
+              "StageName": "$default",
+              "AutoDeploy": true,
+              "DefaultRouteSettings": {
+                "DetailedMetricsEnabled": false
               },
-              "ApiKeyRequired": false,
-              "AuthorizationType": "NONE",
-              "Integration": {
-                "IntegrationHttpMethod": "POST",
-                "Type": "AWS_PROXY",
-                "Uri": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":apigateway:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":lambda:path/2015-03-31/functions/",
-                      {
-                        "Fn::GetAtt": [
-                          "HelloWorldFunctionLambdaFunction",
-                          "Arn"
-                        ]
-                      },
-                      "/invocations"
-                    ]
+              "AccessLogSettings": {
+                "DestinationArn": {
+                  "Fn::GetAtt": [
+                    "HttpApiLogGroup",
+                    "Arn"
                   ]
-                }
-              },
-              "MethodResponses": []
+                },
+                "Format": "{\"requestTime\":\"$context.requestTime\",\"requestId\":\"$context.requestId\",\"apiId\":\"$context.apiId\",\"resourcePath\":\"$context.routeKey\",\"path\":\"$context.path\",\"httpMethod\":\"$context.httpMethod\",\"stage\":\"$context.stage\",\"status\":\"$context.status\",\"integrationStatus\":\"$context.integrationStatus\",\"integrationLatency\":\"$context.integrationLatency\",\"responseLatency\":\"$context.responseLatency\",\"responseLength\":\"$context.responseLength\",\"errorMessage\":\"$context.error.message\",\"format\":\"SLS_HTTP_API_LOG\",\"version\":\"1.0.0\"}"
+              }
             },
-            "DependsOn": [
-              "HelloWorldFunctionLambdaPermissionApiGateway"
-            ]
+            "DependsOn": "HttpApiLogGroup"
           },
-          "ApiGatewayDeployment1696102272449": {
-            "Type": "AWS::ApiGateway::Deployment",
-            "Properties": {
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              },
-              "StageName": "dev"
-            },
-            "DependsOn": [
-              "ApiGatewayMethodHelloGet"
-            ]
-          },
-          "HelloWorldFunctionLambdaPermissionApiGateway": {
+          "HelloWorldFunctionLambdaPermissionHttpApi": {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
               "FunctionName": {
@@ -364,140 +315,48 @@
                     },
                     ":",
                     {
-                      "Ref": "ApiGatewayRestApi"
+                      "Ref": "HttpApi"
                     },
-                    "/*/*"
+                    "/*"
                   ]
                 ]
               }
             }
           },
-          "ApiGatewayLogGroup": {
-            "Type": "AWS::Logs::LogGroup",
+          "HttpApiIntegrationHelloWorldFunction": {
+            "Type": "AWS::ApiGatewayV2::Integration",
             "Properties": {
-              "LogGroupName": "/aws/api-gateway/sam-app-dev"
-            }
-          },
-          "CustomApiGatewayAccountCloudWatchRole": {
-            "Type": "Custom::ApiGatewayAccountRole",
-            "Version": 1,
-            "Properties": {
-              "ServiceToken": {
-                "Fn::GetAtt": [
-                  "CustomDashresourceDashapigwDashcwDashroleLambdaFunction",
-                  "Arn"
-                ]
-              }
-            }
-          },
-          "IamRoleCustomResourcesLambdaExecution": {
-            "Type": "AWS::IAM::Role",
-            "Properties": {
-              "AssumeRolePolicyDocument": {
-                "Version": "2012-10-17",
-                "Statement": [
-                  {
-                    "Effect": "Allow",
-                    "Principal": {
-                      "Service": [
-                        "lambda.amazonaws.com"
-                      ]
-                    },
-                    "Action": [
-                      "sts:AssumeRole"
-                    ]
-                  }
-                ]
+              "ApiId": {
+                "Ref": "HttpApi"
               },
-              "Policies": [
-                {
-                  "PolicyName": {
-                    "Fn::Join": [
-                      "-",
-                      [
-                        "dev",
-                        "sam-app",
-                        "custom-resources-lambda"
-                      ]
-                    ]
-                  },
-                  "PolicyDocument": {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                      {
-                        "Effect": "Allow",
-                        "Resource": {
-                          "Fn::Join": [
-                            ":",
-                            [
-                              "arn",
-                              {
-                                "Ref": "AWS::Partition"
-                              },
-                              "iam:",
-                              {
-                                "Ref": "AWS::AccountId"
-                              },
-                              "role/*"
-                            ]
-                          ]
-                        },
-                        "Action": [
-                          "iam:AttachRolePolicy",
-                          "iam:CreateRole",
-                          "iam:ListAttachedRolePolicies",
-                          "iam:PassRole"
-                        ]
-                      },
-                      {
-                        "Effect": "Allow",
-                        "Resource": {
-                          "Fn::Join": [
-                            ":",
-                            [
-                              "arn",
-                              {
-                                "Ref": "AWS::Partition"
-                              },
-                              "apigateway:*::/account"
-                            ]
-                          ]
-                        },
-                        "Action": [
-                          "apigateway:GET",
-                          "apigateway:PATCH"
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"HelloWorldFunctionLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
             }
           },
-          "CustomDashresourceDashapigwDashcwDashroleLambdaFunction": {
-            "Type": "AWS::Lambda::Function",
+          "HttpApiRouteGetHello": {
+            "Type": "AWS::ApiGatewayV2::Route",
             "Properties": {
-              "Code": {
-                "S3Bucket": {
-                  "Ref": "ServerlessDeploymentBucket"
-                },
-                "S3Key": "serverless/sam-app/dev/1696102278306-2023-09-30T19:31:18.306Z/custom-resources.zip"
+              "ApiId": {
+                "Ref": "HttpApi"
               },
-              "FunctionName": "sam-app-dev-custom-resource-apigw-cw-role",
-              "Handler": "api-gateway-cloud-watch-role/handler.handler",
-              "MemorySize": 1024,
-              "Runtime": "nodejs16.x",
-              "Timeout": 180,
-              "Role": {
-                "Fn::GetAtt": [
-                  "IamRoleCustomResourcesLambdaExecution",
-                  "Arn"
+              "RouteKey": "GET /hello",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationHelloWorldFunction"
+                    }
+                  ]
                 ]
               }
             },
-            "DependsOn": [
-              "IamRoleCustomResourcesLambdaExecution"
-            ]
+            "DependsOn": "HttpApiIntegrationHelloWorldFunction"
           }
         },
         "Outputs": {
@@ -523,21 +382,30 @@
           "HelloWorldFunctionLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "HelloWorldFunctionLambdaVersionuscLZGO7Z6N0UuFAk7QS3QdaQwbAE9tl3vK8W6pA0"
+              "Ref": "HelloWorldFunctionLambdaVersionAsImhzukHZNz4W1p9yvDhZknnTPOyW9MnQdBqS4w"
             },
             "Export": {
               "Name": "sls-sam-app-dev-HelloWorldFunctionLambdaFunctionQualifiedArn"
             }
           },
-          "ServiceEndpoint": {
-            "Description": "URL of the service endpoint",
+          "HttpApiId": {
+            "Description": "Id of the HTTP API",
+            "Value": {
+              "Ref": "HttpApi"
+            },
+            "Export": {
+              "Name": "sls-sam-app-dev-HttpApiId"
+            }
+          },
+          "HttpApiUrl": {
+            "Description": "URL of the HTTP API",
             "Value": {
               "Fn::Join": [
                 "",
                 [
                   "https://",
                   {
-                    "Ref": "ApiGatewayRestApi"
+                    "Ref": "HttpApi"
                   },
                   ".execute-api.",
                   {
@@ -546,13 +414,12 @@
                   ".",
                   {
                     "Ref": "AWS::URLSuffix"
-                  },
-                  "/dev"
+                  }
                 ]
               ]
             },
             "Export": {
-              "Name": "sls-sam-app-dev-ServiceEndpoint"
+              "Name": "sls-sam-app-dev-HttpApiUrl"
             }
           }
         }
@@ -640,8 +507,8 @@
         }
       },
       "logs": {
-        "restApi": {
-          "format": "{\"requestTime\":\"$context.requestTime\",\"requestId\":\"$context.requestId\",\"apiId\":\"$context.apiId\",\"resourceId\":\"$context.resourceId\",\"resourcePath\":\"$context.resourcePath\",\"path\":\"$context.path\",\"httpMethod\":\"$context.httpMethod\",\"status\":\"$context.status\",\"authLatency\":\"$context.authorizer.integrationLatency\",\"integrationLatency\":\"$context.integrationLatency\",\"integrationStatus\":\"$context.integrationStatus\",\"responseLatency\":\"$context.responseLatency\",\"responseLength\":\"$context.responseLength\",\"errorMessage\":\"$context.error.message\",\"format\":\"SLS_ACCESS_LOG\",\"version\":\"1.0.0\"}"
+        "httpApi": {
+          "format": "{\"requestTime\":\"$context.requestTime\",\"requestId\":\"$context.requestId\",\"apiId\":\"$context.apiId\",\"resourcePath\":\"$context.routeKey\",\"path\":\"$context.path\",\"httpMethod\":\"$context.httpMethod\",\"stage\":\"$context.stage\",\"status\":\"$context.status\",\"integrationStatus\":\"$context.integrationStatus\",\"integrationLatency\":\"$context.integrationLatency\",\"responseLatency\":\"$context.responseLatency\",\"responseLength\":\"$context.responseLength\",\"errorMessage\":\"$context.error.message\",\"format\":\"SLS_HTTP_API_LOG\",\"version\":\"1.0.0\"}"
         }
       },
       "vpc": {}
@@ -652,20 +519,21 @@
         "handler": "s_HelloWorldFunction.handler",
         "events": [
           {
-            "http": {
-              "path": "hello",
-              "method": "get",
-              "integration": "AWS_PROXY"
-            }
+            "httpApi": {
+              "path": "/hello",
+              "method": "GET"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/hello"
           }
         ],
         "name": "sam-app-dev-HelloWorldFunction",
         "package": {},
         "memory": 512,
         "timeout": 10,
-        "runtime": "python3.9",
+        "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "HelloWorldFunctionLambdaVersionuscLZGO7Z6N0UuFAk7QS3QdaQwbAE9tl3vK8W6pA0"
+        "versionLogicalId": "HelloWorldFunctionLambdaVersionAsImhzukHZNz4W1p9yvDhZknnTPOyW9MnQdBqS4w"
       }
     },
     "configValidationMode": "warn",
@@ -680,11 +548,40 @@
       },
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "outputs": {
+        "HelloWorldApi": {
+          "Description": "API Gateway endpoint URL for Prod stage for Hello World function",
+          "Value": {
+            "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+          }
+        },
+        "HelloWorldFunction": {
+          "Description": "Hello World Lambda Function ARN",
+          "Value": {
+            "Fn::GetAtt": [
+              "HelloWorldFunction",
+              "Arn"
+            ]
+          }
+        },
+        "HelloWorldFunctionIamRole": {
+          "Description": "Implicit IAM Role created for Hello World function",
+          "Value": {
+            "Fn::GetAtt": [
+              "HelloWorldFunctionRole",
+              "Arn"
+            ]
+          }
+        }
       }
     },
     "app": "sam-app",
     "org": "leozenberg",
     "layers": {},
+    "outputs": {
+      "$ref": "$[\"service\"][\"initialServerlessConfig\"][\"outputs\"]"
+    },
     "isDashboardMonitoringPreconfigured": true,
     "isDashboardAppPreconfigured": true,
     "orgUid": "9zGqDyRTfmL5Tk5X3p",
@@ -692,7 +589,7 @@
     "artifact": "C:\\Users\\leoab\\Projects\\study\\serverless\\sg-challenges\\sam-to-sf\\sam-app\\.serverless\\sam-app.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/sam-app/dev/1696102278306-2023-09-30T19:31:18.306Z",
+    "artifactDirectoryName": "serverless/sam-app/dev/1696656536051-2023-10-07T05:28:56.051Z",
     "artifact": "sam-app.zip"
   }
 }
